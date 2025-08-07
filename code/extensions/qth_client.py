@@ -22,7 +22,10 @@ class QthClient(object):
 
     def init_app(self, app):
         app.register("qth_client", self)
+
         Qth.init()
+     
+        
         Qth.setProductInfo(app.config["QTH_PRODUCT_KEY"], app.config["QTH_PRODUCT_SECRET"])
         Qth.setServer(app.config["QTH_SERVER"])
         Qth.setEventCb(

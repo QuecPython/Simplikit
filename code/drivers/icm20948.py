@@ -147,40 +147,30 @@ class ICM20948(I2CIOWrapper):
     self.icm20948MagCheck()
     self.icm20948WriteSecondary( I2C_ADD_ICM20948_AK09916|I2C_ADD_ICM20948_AK09916_WRITE,REG_ADD_MAG_CNTL2, REG_VAL_MAG_MODE_20HZ)
 
+
+  def _convert_twos_complement(self, value):
+      """处理16位有符号数转换"""
+      if value >= 32768:  # 使用32768作为判断点更准确
+          value -= 65536
+      
+      elif value < -32768:
+          value += 65536
+      return value
+  
   def icm20948_Gyro_Accel_Read(self):
+    
     self._write_byte( REG_ADD_REG_BANK_SEL , REG_VAL_REG_BANK_0)
     data =self._read_block(REG_ADD_ACCEL_XOUT_H, 12)
     self._write_byte( REG_ADD_REG_BANK_SEL , REG_VAL_REG_BANK_2)
-    Accel[0] = (data[0]<<8)|data[1]
-    Accel[1] = (data[2]<<8)|data[3]
-    Accel[2] = (data[4]<<8)|data[5]
-    Gyro[0]  = ((data[6]<<8)|data[7]) - GyroOffset[0]
-    Gyro[1]  = ((data[8]<<8)|data[9]) - GyroOffset[1]
-    Gyro[2]  = ((data[10]<<8)|data[11]) - GyroOffset[2]
-    if Accel[0]>=32767:             #Solve the problem that Python shift will not overflow
-      Accel[0]=Accel[0]-65535
-    elif Accel[0]<=-32767:
-      Accel[0]=Accel[0]+65535
-    if Accel[1]>=32767:
-      Accel[1]=Accel[1]-65535
-    elif Accel[1]<=-32767:
-      Accel[1]=Accel[1]+65535
-    if Accel[2]>=32767:
-      Accel[2]=Accel[2]-65535
-    elif Accel[2]<=-32767:
-      Accel[2]=Accel[2]+65535
-    if Gyro[0]>=32767:
-      Gyro[0]=Gyro[0]-65535
-    elif Gyro[0]<=-32767:
-      Gyro[0]=Gyro[0]+65535
-    if Gyro[1]>=32767:
-      Gyro[1]=Gyro[1]-65535
-    elif Gyro[1]<=-32767:
-      Gyro[1]=Gyro[1]+65535
-    if Gyro[2]>=32767:
-      Gyro[2]=Gyro[2]-65535
-    elif Gyro[2]<=-32767:
-      Gyro[2]=Gyro[2]+65535
+    # 加速度数据处理
+    Accel[0] = self._convert_twos_complement((data[0]<<8)|data[1])
+    Accel[1] = self._convert_twos_complement((data[2]<<8)|data[3])
+    Accel[2] = self._convert_twos_complement((data[4]<<8)|data[5])
+    
+    # 陀螺仪数据处理（减去偏移量）
+    Gyro[0] = self._convert_twos_complement((data[6]<<8)|data[7]) - GyroOffset[0]
+    Gyro[1] = self._convert_twos_complement((data[8]<<8)|data[9]) - GyroOffset[1]
+    Gyro[2] = self._convert_twos_complement((data[10]<<8)|data[11]) - GyroOffset[2]
 
     return Accel,Gyro
 
